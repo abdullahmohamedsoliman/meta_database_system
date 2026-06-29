@@ -1,0 +1,16 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+.env
+
+data/
+*.csv
+*.xlsx
+
+*.rar
+*.zip
+
+.DS_Store
+.vscode/

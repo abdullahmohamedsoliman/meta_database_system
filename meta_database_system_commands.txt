@@ -1,0 +1,333 @@
+META DATABASE SYSTEM - COMMANDS
+================================
+
+Folder purpose:
+---------------
+This folder is used for:
+- Viewing meta classifier database records
+- Reviewing/changing true labels
+- Monitoring database statistics
+- Exporting logs
+- Retraining the meta classifier
+- Copying updated model artifacts to the FastAPI backend
+
+Backend remains responsible for:
+- Prediction
+- Feature extraction
+- Logging predictions to PostgreSQL
+
+
+------------------------------------------------------------
+1) Open the meta database system folder
+------------------------------------------------------------
+
+cd "D:\Grad Project\meta_database_system"
+
+
+------------------------------------------------------------
+2) Create virtual environment
+------------------------------------------------------------
+
+python -m venv venv
+
+
+------------------------------------------------------------
+3) Activate virtual environment
+------------------------------------------------------------
+
+.\venv\Scripts\activate
+
+
+------------------------------------------------------------
+4) Install requirements
+------------------------------------------------------------
+
+pip install -r requirements.txt
+
+
+------------------------------------------------------------
+5) Example .env file
+------------------------------------------------------------
+
+Create a file named .env inside:
+
+D:\Grad Project\meta_database_system\.env
+
+Example:
+
+DATABASE_URL=postgresql+psycopg2://postgres:YOUR_PASSWORD@localhost:5432/qr_feedback_db
+
+Example with password 123456:
+
+DATABASE_URL=postgresql+psycopg2://postgres:123456@localhost:5432/qr_feedback_db
+
+
+------------------------------------------------------------
+6) Initialize database tables
+------------------------------------------------------------
+
+python meta_admin.py init-db
+
+
+------------------------------------------------------------
+7) List latest records
+------------------------------------------------------------
+
+python meta_admin.py list
+
+
+------------------------------------------------------------
+8) List latest 50 records
+------------------------------------------------------------
+
+python meta_admin.py list --limit 50
+
+
+------------------------------------------------------------
+9) List only pending/unreviewed records
+------------------------------------------------------------
+
+python meta_admin.py list --pending
+
+
+------------------------------------------------------------
+10) List only reviewed records
+------------------------------------------------------------
+
+python meta_admin.py list --reviewed
+
+
+------------------------------------------------------------
+11) Show full details for one record
+------------------------------------------------------------
+
+python meta_admin.py show 5
+
+Replace 5 with the record ID you want.
+
+
+------------------------------------------------------------
+12) Mark a record as safe
+------------------------------------------------------------
+
+python meta_admin.py review 5 --label 0 --notes "Legitimate website"
+
+Meaning:
+0 = safe
+
+
+------------------------------------------------------------
+13) Mark a record as suspicious/malicious
+------------------------------------------------------------
+
+python meta_admin.py review 6 --label 1 --notes "Fake login page"
+
+Meaning:
+1 = suspicious/malicious
+
+
+------------------------------------------------------------
+14) Reset a reviewed record back to pending
+------------------------------------------------------------
+
+python meta_admin.py reset 5
+
+
+------------------------------------------------------------
+15) Delete one record
+------------------------------------------------------------
+
+python meta_admin.py delete 5
+
+
+------------------------------------------------------------
+16) Clear all records
+------------------------------------------------------------
+
+python meta_admin.py clear --confirm
+
+Warning:
+This deletes all records from meta_classifier_logs.
+
+
+------------------------------------------------------------
+17) Show database statistics
+------------------------------------------------------------
+
+python meta_admin.py stats
+
+
+------------------------------------------------------------
+18) Export all records to CSV
+------------------------------------------------------------
+
+python meta_admin.py export --out meta_logs_export.csv
+
+
+------------------------------------------------------------
+19) Dataset location for retraining
+------------------------------------------------------------
+
+Put the original meta classifier dataset here:
+
+D:\Grad Project\meta_database_system\data\meta_dataset_final_ordered.csv
+
+Expected structure:
+
+meta_database_system/
+├── data/
+│   └── meta_dataset_final_ordered.csv
+├── artifacts/
+├── .env
+├── requirements.txt
+└── meta_admin.py
+
+
+------------------------------------------------------------
+20) Dry-run retraining
+------------------------------------------------------------
+
+python meta_admin.py retrain --dry-run
+
+This checks:
+- Dataset exists
+- Reviewed feedback rows exist
+- Feature names match
+- Number of rows
+- New model version
+
+It does not save a new model.
+
+
+------------------------------------------------------------
+21) Retrain normally
+------------------------------------------------------------
+
+python meta_admin.py retrain
+
+This saves updated artifacts inside:
+
+D:\Grad Project\meta_database_system\artifacts\
+
+Files created/updated:
+
+rfc_model.pkl
+scaler.pkl
+feature_columns.pkl
+model_info.txt
+
+
+------------------------------------------------------------
+22) Retrain and copy artifacts to backend automatically
+------------------------------------------------------------
+
+python meta_admin.py retrain --backend-artifacts "D:\Grad Project\fastapi-project-main\app\ml_artifacts\meta_classifier"
+
+This retrains the model and copies the updated artifacts to the backend.
+
+
+------------------------------------------------------------
+23) Retrain only if at least 10 reviewed rows exist
+------------------------------------------------------------
+
+python meta_admin.py retrain --min-reviewed 10 --backend-artifacts "D:\Grad Project\fastapi-project-main\app\ml_artifacts\meta_classifier"
+
+
+------------------------------------------------------------
+24) Include rows that were already used before
+------------------------------------------------------------
+
+python meta_admin.py retrain --include-used
+
+Or with backend copy:
+
+python meta_admin.py retrain --include-used --backend-artifacts "D:\Grad Project\fastapi-project-main\app\ml_artifacts\meta_classifier"
+
+
+------------------------------------------------------------
+25) Recommended full workflow
+------------------------------------------------------------
+
+Step 1: Run backend and scan QR codes.
+Backend logs predictions to PostgreSQL.
+
+Step 2: Open meta database system:
+
+cd "D:\Grad Project\meta_database_system"
+.\venv\Scripts\activate
+
+Step 3: Check records:
+
+python meta_admin.py list --pending
+
+Step 4: Review records:
+
+python meta_admin.py review 5 --label 0 --notes "Safe website"
+python meta_admin.py review 6 --label 1 --notes "Suspicious login page"
+
+Step 5: Check stats:
+
+python meta_admin.py stats
+
+Step 6: Dry-run retraining:
+
+python meta_admin.py retrain --dry-run
+
+Step 7: Retrain and copy artifacts to backend:
+
+python meta_admin.py retrain --backend-artifacts "D:\Grad Project\fastapi-project-main\app\ml_artifacts\meta_classifier"
+
+Step 8: Restart backend:
+
+cd "D:\Grad Project\fastapi-project-main"
+.\venv\Scripts\activate
+uvicorn app.main:app --reload
+
+
+------------------------------------------------------------
+26) Backend start command
+------------------------------------------------------------
+
+cd "D:\Grad Project\fastapi-project-main"
+.\venv\Scripts\activate
+uvicorn app.main:app --reload
+
+
+------------------------------------------------------------
+27) Open backend docs
+------------------------------------------------------------
+
+http://127.0.0.1:8000/docs
+
+
+------------------------------------------------------------
+28) Stop backend server
+------------------------------------------------------------
+
+CTRL + C
+
+
+------------------------------------------------------------
+29) Exit virtual environment
+------------------------------------------------------------
+
+deactivate
+
+
+------------------------------------------------------------
+31) Drop the database
+------------------------------------------------------------
+Run this in the query tool in qr_feedback_db in pgadmin
+
+DROP TABLE IF EXISTS meta_classifier_logs;
+
+------------------------------------------------------------
+31) Important notes
+------------------------------------------------------------
+
+- The backend does prediction and logging only.
+- The meta_database_system folder handles admin, monitoring, review, and retraining.
+- The dataset should stay outside the backend.
+- Only model artifacts are copied to the backend.
+- The database is PostgreSQL, not stored inside the project folder.
+- The .env DATABASE_URL must match the PostgreSQL username, password, host, port, and database name.
